@@ -13,13 +13,13 @@ def get_instance_id(event):
 #plugs it into the centreon rest API to delete the host out of centreon
 def centreon_api_del(cent_inst_name):
     postdata = {'username':'insert_username_here','password':'insert_password_here'}
-    CentreonURL = 'http://10.10.1.220/centreon/api/index.php?action=authenticate'
+    CentreonURL = 'http://{centreonURLhere}/centreon/api/index.php?action=authenticate'
     response = requests.post(CentreonURL, data=postdata)
     authData = json.loads(response.text)
     reqheaders = {'centreon-auth-token':authData["authToken"]}
     requestbody = {'action':'del', 'object':'host', 'values':cent_inst_name}
     jsonrequestbody = json.dumps(requestbody)
-    CentreonURL = "http://10.10.1.220/centreon/api/index.php?action=action&object=centreon_clapi"
+    CentreonURL = "http://{centreonURLhere}/centreon/api/index.php?action=action&object=centreon_clapi"
     response = requests.post(CentreonURL, data=jsonrequestbody, headers=reqheaders)
     error_text = response.text
     error_code = response.status_code
@@ -32,13 +32,13 @@ def centreon_api_del(cent_inst_name):
         ssm = boto3.client('ssm')
         command = ssm.send_command( 
             InstanceIds=[
-                'i-0fd2d9c2b893388ac',
+                '{centeronInstanceIDhere}',
             ],
             DocumentName='AWS-RunShellScript',
             Comment='Reloading Prod Centreon Poller',
             Parameters={
                 'commands': [
-                    'sudo ./centreon -u aws_lambda -p kibo123$ -a APPLYCFG -v "Central"',
+                    'sudo ./centreon -u {usernamehere} -p {passwordhere} -a APPLYCFG -v "Central"',
                 ],
                 'workingDirectory': [
                     '/usr/share/centreon/bin', 
@@ -51,7 +51,7 @@ def centreon_api_del(cent_inst_name):
     ## this function-within-a-function will notify SNS if there is a failure with the function above
     def notify_when_bad(error_code, error_text):
         sns = boto3.client(service_name="sns")
-        topicArn = 'arn:aws:sns:us-east-1:812040210293:CentreonInstanceDeleted'
+        topicArn = '{cloudwatchtopicARNHere}'
         
         if response.status_code == 200:
             ssmsendcommand()
